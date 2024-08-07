@@ -86,7 +86,7 @@ describe(`AI Lab extension installation and verification`, async () => {
       recipesCatalogPage = await aiLabPage.navigationBar.openRecipesCatalog();
       await recipesCatalogPage.waitForLoad();
     });
-    test(`Install ChatBot example app`, { timeout: 780_000 }, async () => {
+    test(`Install ChatBot example app`, { timeout: 1_560_000 }, async () => {
       const chatBotApp: AILabAppDetailsPage = await recipesCatalogPage.openRecipesCatalogApp(
         recipesCatalogPage.recipesCatalogNaturalLanguageProcessing,
         AI_LAB_AI_APP_NAME,

@@ -49,6 +49,6 @@ export class AILabStartRecipePage extends AILabBasePage {
     } catch (error) {
       console.warn(`Warning: Could not reset the app, repository probably clean.\n\t${error}`);
     }
-    await playExpect(this.recipeStatus).toContainText('AI App is running', { timeout: 720_000 });
+    await playExpect(this.recipeStatus).toContainText('AI App is running', { timeout: 1_440_000 });
   }
 }

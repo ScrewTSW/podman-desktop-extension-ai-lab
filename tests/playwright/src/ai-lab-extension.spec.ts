@@ -18,11 +18,10 @@
 
 import type { Page } from '@playwright/test';
 import type { DashboardPage, ExtensionsPage, Runner } from '@podman-desktop/tests-playwright';
-import { NavigationBar, expect as playExpect, test, RunnerOptions } from '@podman-desktop/tests-playwright';
+import { NavigationBar, expect as playExpect, test, RunnerOptions, isLinux } from '@podman-desktop/tests-playwright';
 import { AILabPage } from './model/ai-lab-page';
 import type { AILabRecipesCatalogPage } from './model/ai-lab-recipes-catalog-page';
 import type { AILabAppDetailsPage } from './model/ai-lab-app-details-page';
-import * as os from 'node:os';
 
 const AI_LAB_EXTENSION_OCI_IMAGE: string =
   process.env.AI_LAB_OCI ?? 'ghcr.io/containers/podman-desktop-extension-ai-lab:nightly';
@@ -30,7 +29,8 @@ const AI_LAB_CATALOG_EXTENSION_LABEL: string = 'redhat.ai-lab';
 const AI_LAB_NAVBAR_EXTENSION_LABEL: string = 'AI Lab';
 const AI_LAB_PAGE_BODY_LABEL: string = 'Webview AI Lab';
 const AI_LAB_AI_APP_NAME: string = 'ChatBot';
-const isLinux = os.platform() === 'linux';
+const AI_LAB_DO_NOT_UPLOAD_MODEL: boolean = process.env.AI_LAB_DO_NOT_UPLOAD_MODEL === 'true';
+const isCILinux: boolean = !!process.env.GITHUB_ACTIONS && isLinux;
 
 let webview: Page;
 let aiLabPage: AILabPage;
@@ -41,13 +41,20 @@ let dashboardPage: DashboardPage;
 let extensionsPage: ExtensionsPage;
 
 test.use({
-  runnerOptions: new RunnerOptions({ customFolder: 'ai-lab-tests-pd' }),
+  runnerOptions: AI_LAB_DO_NOT_UPLOAD_MODEL
+    ? new RunnerOptions({ customFolder: 'ai-lab-tests-pd', aiLabModelUploadDisabled: true })
+    : new RunnerOptions({ customFolder: 'ai-lab-tests-pd' }),
 });
 test.beforeAll(async ({ runner, welcomePage, page }) => {
   runner.setVideoAndTraceName('ai-lab-e2e');
 
   await welcomePage.handleWelcomePage(true);
   navigationBar = new NavigationBar(page);
+
+  if (AI_LAB_DO_NOT_UPLOAD_MODEL) {
+    console.log('Skipping model upload in settings.json');
+    await runner.close();
+  }
 });
 
 test.afterAll(async ({ runner }) => {
@@ -77,7 +84,7 @@ test.describe.serial(`AI Lab extension installation and verification`, { tag: '@
     });
   });
   test.describe.serial(`AI Lab extension verification`, () => {
-    test.skip(isLinux, `Skipping AI App deployment on Linux`);
+    test.skip(isCILinux, `Skipping AI App deployment on Linux`);
     test(`Open Recipes Catalog`, async () => {
       recipesCatalogPage = await aiLabPage.navigationBar.openRecipesCatalog();
       await recipesCatalogPage.waitForLoad();

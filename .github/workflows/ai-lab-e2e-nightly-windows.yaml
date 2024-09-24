@@ -58,7 +58,7 @@ on:
         type: string
         required: true
       env_vars:
-        default: 'TEST_PODMAN_MACHINE=true'
+        default: 'TEST_PODMAN_MACHINE=true,AI_LAB_DO_NOT_UPLOAD_MODEL=true'
         description: 'Env. Variables passed into target machine, ie: VAR1=xxx,VAR2=true,VAR3=15,VAR4="Pass me along"'
         type: string
         required: true
@@ -112,7 +112,7 @@ jobs:
         DEFAULT_BRANCH: 'main'
         DEFAULT_EXT_TESTS: '1'
         DEFAULT_NPM_TARGET: 'test:e2e'
-        DEFAULT_ENV_VARS: 'TEST_PODMAN_MACHINE=true'
+        DEFAULT_ENV_VARS: 'TEST_PODMAN_MACHINE=true,AI_LAB_DO_NOT_UPLOAD_MODEL=true'
         DEFAULT_PODMAN_OPTIONS: 'INIT=1,START=1,ROOTFUL=1,NETWORKING=0'
         DEFAULT_EXT_REPO_OPTIONS: 'REPO=podman-desktop-extension-ai-lab,FORK=containers,BRANCH=main'
         DEFAULT_URL: "https://github.com/containers/podman/releases/download/v5.2.4/podman-5.2.4-setup.exe"

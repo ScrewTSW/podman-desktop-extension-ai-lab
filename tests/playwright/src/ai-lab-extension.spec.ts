@@ -42,7 +42,16 @@ let extensionsPage: ExtensionsPage;
 
 test.use({
   runnerOptions: AI_LAB_DO_NOT_UPLOAD_MODEL
-    ? new RunnerOptions({ customFolder: 'ai-lab-tests-pd', aiLabModelUploadDisabled: true })
+    ? new RunnerOptions({ customFolder: 'ai-lab-tests-pd', aiLabModelUploadDisabled: true, extensionsDisabled: [
+      'podman-desktop.compose',
+      'podman-desktop.docker',
+      'podman-desktop.kind',
+      'podman-desktop.kubectl-cli',
+      'podman-desktop.kube-context',
+      'podman-desktop.lima',
+      'podman-desktop.podman',
+      'podman-desktop.registries'
+    ] })
     : new RunnerOptions({ customFolder: 'ai-lab-tests-pd' }),
 });
 test.beforeAll(async ({ runner, welcomePage, page }) => {

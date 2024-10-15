@@ -29,7 +29,7 @@ const AI_LAB_CATALOG_EXTENSION_LABEL: string = 'redhat.ai-lab';
 const AI_LAB_NAVBAR_EXTENSION_LABEL: string = 'AI Lab';
 const AI_LAB_PAGE_BODY_LABEL: string = 'Webview AI Lab';
 const AI_LAB_AI_APP_NAME: string = 'ChatBot';
-const AI_LAB_DO_NOT_UPLOAD_MODEL: boolean = process.env.AI_LAB_DO_NOT_UPLOAD_MODEL === 'true';
+const AI_LAB_DO_NOT_UPLOAD_MODEL: boolean = true;
 const isCILinux: boolean = !!process.env.GITHUB_ACTIONS && isLinux;
 
 let webview: Page;

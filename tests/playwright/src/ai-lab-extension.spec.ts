@@ -23,7 +23,6 @@ import {
   test,
   RunnerOptions,
   isLinux,
-  isWindows,
   waitForPodmanMachineStartup,
 } from '@podman-desktop/tests-playwright';
 import { AILabPage } from './model/ai-lab-page';
@@ -43,7 +42,6 @@ let webview: Page;
 let aiLabPage: AILabPage;
 const runnerOptions = {
   customFolder: 'ai-lab-tests-pd',
-  aiLabModelUploadDisabled: isWindows ? true : false,
 };
 
 test.use({

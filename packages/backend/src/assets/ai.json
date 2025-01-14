@@ -306,6 +306,17 @@
       "backend": "llama-cpp"
     },
     {
+      "id": "hf.MaziyarPanahi.phi-2.Q4_K_M v2",
+      "name": "MaziyarPanahi/phi-2-GGUF v2",
+      "description": "# [MaziyarPanahi/phi-2-GGUF](https://huggingface.co/MaziyarPanahi/phi-2-GGUF)\n- Model creator: [microsoft](https://huggingface.co/microsoft)\n- Original model: [microsoft/phi-2](https://huggingface.co/microsoft/phi-2)\n\n## Description\n[MaziyarPanahi/phi-2-GGUF](https://huggingface.co/MaziyarPanahi/phi-2-GGUF) contains GGUF format model files for [microsoft/phi-2](https://huggingface.co/microsoft/phi-2).",
+      "registry": "Hugging Face",
+      "license": "Apache-2.0",
+      "url": "https://huggingface.co/MaziyarPanahi/phi-2-GGUF/resolve/main/phi-2.Q4_K_M.gguf",
+      "memory": 1739461755,
+      "sha256": "013e0e421b70dc169adb0c0010171202371e907e5f648084e4ddc8ad9985127a",
+      "backend": "llama-cpp"
+    },
+    {
       "id": "hf.llmware.dragon-mistral-7b-q4_k_m",
       "name": "llmware/dragon-mistral-7b-v0",
       "description": "# Model Card for Model ID\n\n<!-- Provide a quick summary of what the model is/does. -->\n\ndragon-mistral-7b-v0 part of the dRAGon (\"Delivering RAG On ...\") model series, RAG-instruct trained on top of a Mistral-7B base model.\n\nDRAGON models have been fine-tuned with the specific objective of fact-based question-answering over complex business and legal documents with an emphasis on reducing hallucinations and providing short, clear answers for workflow automation.",

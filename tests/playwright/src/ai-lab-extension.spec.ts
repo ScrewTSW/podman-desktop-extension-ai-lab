@@ -153,7 +153,7 @@ test.describe.serial(`AI Lab extension installation and verification`, { tag: '@
       let catalogPage: AILabCatalogPage;
       let modelServiceDetailsPage: AILabServiceDetailsPage;
 
-      test.skip(isLinux, `Skipping model service creation on Linux`);
+      // test.skip(isLinux, `Skipping model service creation on Linux`);
       test.beforeAll(`Open AI Lab Catalog`, async ({ runner, page, navigationBar }) => {
         [page, webview] = await handleWebview(runner, page, navigationBar);
         aiLabPage = new AILabPage(page, webview);
@@ -202,6 +202,17 @@ test.describe.serial(`AI Lab extension installation and verification`, { tag: '@
         test.setTimeout(150_000);
         const modelServicePage = await modelServiceDetailsPage.deleteService();
         await playExpect(modelServicePage.heading).toBeVisible({ timeout: 120_000 });
+      });
+
+      test(`Delete ${modelName} model`, async () => {
+        test.skip(isWindows, 'Model deletion is currently very buggy in azure cicd');
+        test.setTimeout(310_000);
+        playExpect(await catalogPage.isModelDownloaded(modelName)).toBeTruthy();
+        await catalogPage.deleteModel(modelName);
+        await playExpect
+          // eslint-disable-next-line sonarjs/no-nested-functions
+          .poll(async () => await waitForCatalogModel(modelName), { timeout: 300_000, intervals: [2_500] })
+          .toBeFalsy();
       });
     });
   });

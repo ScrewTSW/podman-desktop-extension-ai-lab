@@ -16,6 +16,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: e2e-tests-main
+run-name: Linux E2E tests on main branch ${{ github.event_name == 'schedule' && '[nightly]' || '' }}
 
 on:
   push:

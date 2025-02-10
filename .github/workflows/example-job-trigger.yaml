@@ -14,4 +14,10 @@ jobs:
         env:
           EVENT_RUN: ${{ toJson(github.event.workflow_run) }}
         run: |
+          printenv WORKFLOW_RUN > workflow_run.json
           echo "Workflow run ID: ${{ fromJson(env.EVENT_RUN).id }}"
+      - name: Upload event run context
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-run-context
+          path: workflow_run.json

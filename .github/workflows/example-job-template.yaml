@@ -1,0 +1,75 @@
+name: example-job-template
+
+on:
+  workflow_call:
+    inputs:
+      trigger-workflow-run-id:
+        required: true
+        type: string
+      trigger-workflow-fork:
+        required: true
+        type: string
+      trigger-workflow-repo-name:
+        required: true
+        type: string
+      trigger-workflow-branch:
+        required: true
+        type: string
+      trigger-workflow-commit-sha:
+        required: true
+        type: string
+      trigger-workflow-base-repo:
+        required: true
+        type: string
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add PR check status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          status_context="ci/gh/e2e/linux-gh-actions-ubuntu-latest"
+          echo "status_context=${status_context}" >> "$GITHUB_ENV"
+          set -xuo
+          # Status msg
+          data="{\"state\":\"pending\""
+          data="${data},\"description\":\"recipe tests on catalog change on ubuntu-latest\""
+          data="${data},\"context\":\"$status_context\""
+          data="${data},\"target_url\":\"https://github.com/${{ inputs.trigger-workflow-base-repo }}/actions/runs/${{ inputs.trigger-workflow-run-id }}\"}"
+          # Create status by API call
+          curl -L -v -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ env.GH_TOKEN }}" \
+            https://api.github.com/repos/${{ inputs.trigger-workflow-base-repo }}/statuses/${{ inputs.trigger-workflow-commit-sha }} \
+            -d "${data}"
+      - name: Process Inputs
+        id: test-report
+        run: |
+          echo "Example job was called by ${{ inputs.trigger-workflow-run-id }}"
+          echo "Fork owner: ${{ inputs.trigger-workflow-fork }}"
+          echo "Fork repo: ${{ inputs.trigger-workflow-repo-name }}"
+          echo "Fork branch: ${{ inputs.trigger-workflow-branch }}"
+          echo "Commit SHA: ${{ inputs.trigger-workflow-commit-sha }}"
+          echo "Base repo: ${{ inputs.trigger-workflow-base-repo }}"
+      - name: Update PR Check status
+        if: Always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -xuo
+          # Status msg
+          data="{\"state\":\"success\""
+          if [[ ${{ steps.test-report.outcome }} != "success" ]]; then
+            data="{\"state\":\"failure\""
+          fi
+          data="${data},\"description\":\"Finished linux-gh-actions on ubuntu-latest\""
+          data="${data},\"context\":\"${{ env.status_context }}\""
+          data="${data},\"target_url\":\"https://github.com/${{ inputs.trigger-workflow-base-repo }}/actions/runs/${{ inputs.trigger-workflow-run-id }}\"}"
+          # Create status by API call
+          curl -L -v -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ env.GH_TOKEN }}" \
+            https://api.github.com/repos/${{ inputs.trigger-workflow-base-repo }}/statuses/${{ inputs.trigger-workflow-commit-sha }} \
+            -d "${data}"

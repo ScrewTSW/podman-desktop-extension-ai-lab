@@ -74,6 +74,28 @@ jobs:
     env:
       SKIP_INSTALLATION: true
     steps:
+      - name: Retrieve necessary info from GH Context
+        env:
+          GH_CONTEXT: ${{ toJson(github) }}
+        run: |
+          echo "GH action Info:"
+          echo -e "\tRun ID:${{ fromJson(env.GH_CONTEXT).run_id }}" | tee -a gh_context.txt
+          echo -e "\tLatest SHA:${{ fromJson(env.GH_CONTEXT).event.after }}" | tee -a gh_context.txt
+          echo "PR Remote Info:"
+          echo -e "\tRemote Owner:${{ fromJson(env.GH_CONTEXT).event.pull_request.head.repo.owner.login }}" | tee -a gh_context.txt
+          echo -e "\tRemote Repo Name:${{ fromJson(env.GH_CONTEXT).event.pull_request.head.repo.name }}" | tee -a gh_context.txt
+          echo -e "\tRemote Branch:${{ fromJson(env.GH_CONTEXT).event.pull_request.head.ref }}" | tee -a gh_context.txt
+          echo -e "\tRemote Commit:${{ fromJson(env.GH_CONTEXT).event.pull_request.head.sha }}" | tee -a gh_context.txt
+          echo "PR Base Info:"
+          echo -e "\tBase Owner:${{ fromJson(env.GH_CONTEXT).event.pull_request.base.repo.owner.login }}" | tee -a gh_context.txt
+          echo -e "\tBase Repo Name:${{ fromJson(env.GH_CONTEXT).event.pull_request.base.repo.name }}" | tee -a gh_context.txt
+          echo -e "\tBase Branch:${{ fromJson(env.GH_CONTEXT).event.pull_request.base.ref }}" | tee -a gh_context.txt
+          echo -e "\tBase Commit:${{ fromJson(env.GH_CONTEXT).event.pull_request.base.sha }}" | tee -a gh_context.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gh-context
+          path: gh_context.txt
       - uses: actions/checkout@v4
         with:
           path: podman-desktop-extension-ai-lab

@@ -1,0 +1,17 @@
+name: example-job-trigger
+
+on:
+  workflow_run:
+    workflows: ["pr-check"]
+    types:
+      - completed
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse event data
+        env:
+          EVENT_RUN: ${{ toJson(github.event.workflow_run) }}
+        run: |
+          echo "Workflow run ID: ${{ fromJson(env.EVENT_RUN).id }}"

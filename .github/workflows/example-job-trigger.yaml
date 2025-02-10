@@ -1,0 +1,63 @@
+name: example-job-trigger
+
+on:
+  workflow_run:
+    workflows: ["pr-check"]
+    types:
+      - completed
+
+jobs:
+  extract-context:
+    runs-on: ubuntu-latest
+    outputs:
+      workflow_run_id: ${{ steps.parse-event.outputs.WORKFLOW_RUN_ID }}
+      fork_owner: ${{ steps.parse-event.outputs.FORK_OWNER }}
+      fork_repo: ${{ steps.parse-event.outputs.FORK_REPO }}
+      fork_branch: ${{ steps.parse-event.outputs.FORK_BRANCH }}
+      commit_sha: ${{ steps.parse-event.outputs.COMMIT_SHA }}
+      base_repo: ${{ steps.parse-event.outputs.BASE_REPO }}
+      changes_detected: ${{ steps.parse-event.outputs.CHANGES_DETECTED }}
+    steps:
+      - name: Parse event data
+        id: parse-event
+        env:
+          WORKFLOW_RUN: ${{ toJson(github.event.workflow_run) }}
+        run: |
+          echo "Workflow run ID: ${{ fromJson(env.WORKFLOW_RUN).id }}"
+          echo "WORKFLOW_RUN_ID=${{ fromJson(env.WORKFLOW_RUN).id }}" >> $GITHUB_OUTPUT
+          echo "Fork owner: ${{ fromJson(env.WORKFLOW_RUN).head_repository.owner.login }}"
+          echo "FORK_OWNER=${{ fromJson(env.WORKFLOW_RUN).head_repository.owner.login }}" >> $GITHUB_OUTPUT
+          echo "Fork repo: ${{ fromJson(env.WORKFLOW_RUN).head_repository.name }}"
+          echo "FORK_REPO=${{ fromJson(env.WORKFLOW_RUN).head_repository.name }}" >> $GITHUB_OUTPUT
+          echo "Fork branch: ${{ fromJson(env.WORKFLOW_RUN).head_branch }}"
+          echo "FORK_BRANCH=${{ fromJson(env.WORKFLOW_RUN).head_branch }}" >> $GITHUB_OUTPUT
+          echo "Commit SHA: ${{ fromJson(env.WORKFLOW_RUN).head_sha }}"
+          echo "COMMIT_SHA=${{ fromJson(env.WORKFLOW_RUN).head_sha }}" >> $GITHUB_OUTPUT
+          echo "Base repo: ${{ fromJson(env.WORKFLOW_RUN).repository.full_name }}"
+          echo "BASE_REPO=${{ fromJson(env.WORKFLOW_RUN).repository.full_name }}" >> $GITHUB_OUTPUT
+
+          git clone "https://www.github.com/${{ fromJson(env.WORKFLOW_RUN).repository.full_name }}" "${{ fromJson(env.WORKFLOW_RUN).repository.name }}" --depth 1
+          cd "${{ fromJson(env.WORKFLOW_RUN).repository.name }}"
+          git remote add upstream "https://www.github.com/${{ fromJson(env.WORKFLOW_RUN).head_repository.full_name }}"
+          git fetch upstream
+          git diff --name-only upstream/${{ fromJson(env.WORKFLOW_RUN).head_branch }} HEAD > changes.txt
+          if grep -qe 'packages/backend/src/assets/ai.json' changes.txt; then
+            echo "Changes detected in ai.json"
+            echo "CHANGES_DETECTED=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes detected in ai.json"
+            echo "CHANGES_DETECTED=false" >> $GITHUB_OUTPUT
+          fi
+
+  trigger-template:
+    uses: ScrewTSW/podman-desktop-extension-ai-lab/.github/workflows/example-job-template.yaml@main
+    if: ${{ needs.extract-context.outputs.changes_detected == 'true' }} && ${{ github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+    with:
+      trigger-workflow-run-id: ${{ needs.extract-context.outputs.workflow_run_id }}
+      trigger-workflow-fork: ${{ needs.extract-context.outputs.fork_owner }}
+      trigger-workflow-repo_name: ${{ needs.extract-context.outputs.fork_repo }}
+      trigger-workflow-branch: ${{ needs.extract-context.outputs.fork_branch }}
+      trigger-workflow-commit_sha: ${{ needs.extract-context.outputs.commit_sha }}
+      trigger-workflow-base_repo: ${{ needs.extract-context.outputs.base_repo }}

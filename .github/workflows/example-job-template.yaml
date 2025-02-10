@@ -1,0 +1,36 @@
+name: example-job-template
+
+on:
+  workflow_call:
+    inputs:
+      trigger-workflow-run-id:
+        required: true
+        type: string
+      trigger-workflow-fork:
+        required: true
+        type: string
+      trigger-workflow-repo_name:
+        required: true
+        type: string
+      trigger-workflow-branch:
+        required: true
+        type: string
+      trigger-workflow-commit_sha:
+        required: true
+        type: string
+      trigger-workflow-base_repo:
+        required: true
+        type: string
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Was called
+        run: |
+          echo "Example job was called by ${{ inputs.trigger-workflow-run-id }}"
+          echo "Fork owner: ${{ inputs.trigger-workflow-fork }}"
+          echo "Fork repo: ${{ inputs.trigger-workflow-repo_name }}"
+          echo "Fork branch: ${{ inputs.trigger-workflow-branch }}"
+          echo "Commit SHA: ${{ inputs.trigger-workflow-commit_sha }}"
+          echo "Base repo: ${{ inputs.trigger-workflow-base_repo }}"

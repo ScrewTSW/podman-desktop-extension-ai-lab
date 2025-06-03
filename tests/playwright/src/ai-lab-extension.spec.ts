@@ -257,7 +257,7 @@ test.describe.serial(`AI Lab extension installation and verification`, () => {
     });
 
     test(`Download ${model} via API`, async ({ request }) => {
-      test.setTimeout(300_000);
+      test.setTimeout(610_000);
       const catalogPage = await aiLabPage.navigationBar.openCatalog();
       await catalogPage.waitForLoad();
       console.log(`Downloading ${model}...`);
@@ -271,7 +271,7 @@ test.describe.serial(`AI Lab extension installation and verification`, () => {
           insecure: false,
           stream: true,
         },
-        timeout: 300_000,
+        timeout: 600_000,
       });
 
       const body = await response.body();
@@ -331,13 +331,13 @@ test.describe.serial(`AI Lab extension installation and verification`, () => {
       });
 
       test(`Download ${modelName} model`, async () => {
-        test.setTimeout(310_000);
+        test.setTimeout(610_000);
         if (!(await catalogPage.isModelDownloaded(modelName))) {
           await catalogPage.downloadModel(modelName);
         }
         await playExpect
           // eslint-disable-next-line sonarjs/no-nested-functions
-          .poll(async () => await waitForCatalogModel(modelName), { timeout: 300_000, intervals: [5_000] })
+          .poll(async () => await waitForCatalogModel(modelName), { timeout: 600_000, intervals: [5_000] })
           .toBeTruthy();
       });
 
@@ -482,7 +482,7 @@ test.describe.serial(`AI Lab extension installation and verification`, () => {
       });
 
       test(`Download ${modelName} model if not available`, async () => {
-        test.setTimeout(310_000);
+        test.setTimeout(610_000);
         if (!(await catalogPage.isModelDownloaded(modelName))) {
           await catalogPage.downloadModel(modelName);
         }

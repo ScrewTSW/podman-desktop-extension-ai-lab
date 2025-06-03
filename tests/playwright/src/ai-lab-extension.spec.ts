@@ -50,7 +50,57 @@ import {
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { AIJsonDto } from './model/ai-json-dto';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const TEST_AUDIO_FILE_PATH: string = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  'playwright',
+  'resources',
+  `test-audio-to-text.wav`,
+);
+const AI_JSON_FILE_PATH: string = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'packages',
+  'backend',
+  'src',
+  'assets',
+  'ai.json',
+);
+
+const aiJSONFile = fs.readFileSync(AI_JSON_FILE_PATH, 'utf8');
+const AI_JSON: AIJsonDto = JSON.parse(aiJSONFile) as AIJsonDto;
+const AI_APP_MODELS: Set<string> = new Set();
+AI_JSON.recipes.forEach(recipe => {
+  recipe.recommended.forEach(model => {
+    AI_APP_MODELS.add(model);
+  });
+});
+// Create a set of AI models that are not the first recommended model for any app
+const AI_APP_UNUSED_MODELS: string[] = [
+  ...AI_APP_MODELS.values().filter(model => {
+    // Check if the model is not the first recommended model for any app
+    return !Array.from(AI_JSON.recipes).some(recipe => {
+      return recipe.recommended[0] === model;
+    });
+  })
+];
+const AI_APP_MODEL_AND_NAMES: Map<string, string[]> = new Map();
+AI_JSON.recipes.forEach(recipe => {
+  const recommendedModel = recipe.recommended.at(0);
+  if (recommendedModel) {
+    if (!AI_APP_MODEL_AND_NAMES.has(recommendedModel)) {
+      AI_APP_MODEL_AND_NAMES.set(recommendedModel, []);
+    }
+    AI_APP_MODEL_AND_NAMES.get(recommendedModel)?.push(recipe.name);
+  }
+});
 const AI_LAB_EXTENSION_OCI_IMAGE =
   process.env.EXTENSION_OCI_IMAGE ?? 'ghcr.io/containers/podman-desktop-extension-ai-lab:nightly';
 const AI_LAB_EXTENSION_PREINSTALLED: boolean = process.env.EXTENSION_PREINSTALLED === 'true';
@@ -75,17 +125,6 @@ const AI_APPS: AiApp[] = [
   { appName: 'RAG Chatbot', appModel: 'ibm-granite/granite-3.3-8b-instruct-GGUF' },
   { appName: 'Function calling', appModel: 'ibm-granite/granite-3.3-8b-instruct-GGUF' },
 ];
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const TEST_AUDIO_FILE_PATH: string = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  'playwright',
-  'resources',
-  `test-audio-to-text.wav`,
-);
 
 test.use({
   runnerOptions: new RunnerOptions(runnerOptions),
@@ -506,115 +545,127 @@ test.describe.serial(`AI Lab extension installation and verification`, () => {
       test.afterAll(`Cleaning up service model`, async () => {
         test.setTimeout(60_000);
         await cleanupServiceModels();
+
+        console.log(`PATH: ${__dirname}`);
+        console.log(`AI Apps Models: ${AI_APP_MODELS.values().toArray()}`);
+        console.log(`Unused Models: ${AI_APP_UNUSED_MODELS}`);
+        console.log('AI App names by Model:');
+        AI_APP_MODEL_AND_NAMES.forEach((appNames, model) => {
+          console.log(`  ${model}: ${appNames.join(', ')}`);
+        });
       });
     });
   });
 
-  AI_APPS.forEach(({ appName, appModel }) => {
-    test.describe.serial(`AI Recipe installation`, () => {
-      test.skip(
-        !process.env.EXT_TEST_RAG_CHATBOT && appName === 'RAG Chatbot',
-        'EXT_TEST_RAG_CHATBOT variable not set, skipping test',
-      );
-      let recipesCatalogPage: AILabRecipesCatalogPage;
 
-      test.beforeAll(`Open Recipes Catalog`, async ({ runner, page, navigationBar }) => {
-        aiLabPage = await reopenAILabDashboard(runner, page, navigationBar);
-        await aiLabPage.navigationBar.waitForLoad();
-
-        recipesCatalogPage = await aiLabPage.navigationBar.openRecipesCatalog();
-        await recipesCatalogPage.waitForLoad();
-      });
-
-      test(`Install ${appName} example app`, async () => {
-        test.setTimeout(1_500_000);
-        const demoApp = await recipesCatalogPage.openRecipesCatalogApp(appName);
-        await demoApp.waitForLoad();
-        await demoApp.startNewDeployment();
-      });
-
-      test(`Verify that model service for the ${appName} is working`, async ({ request }) => {
-        test.skip(appName !== 'Function calling' && appName !== 'Audio to Text');
-        test.fail(
-          appName === 'Audio to Text',
-          'Expected failure due to issue #3111: https://github.com/containers/podman-desktop-extension-ai-lab/issues/3111',
+  // ['Audio to Text', 'ChatBot', 'Summarizer', 'Code Generation', 'RAG Chatbot', 'Function calling'].forEach(appName => {
+  AI_APP_MODEL_AND_NAMES.forEach((appNames, appModel) => {
+    appNames.forEach(appName => {
+      test.describe.serial(`AI Recipe installation ${appName} using ${appModel}`, () => {
+        test.skip(
+          !process.env.EXT_TEST_RAG_CHATBOT && appName === 'RAG Chatbot',
+          'EXT_TEST_RAG_CHATBOT variable not set, skipping test',
         );
-        test.setTimeout(600_000);
+        let recipesCatalogPage: AILabRecipesCatalogPage;
 
-        const modelServicePage = await aiLabPage.navigationBar.openServices();
-        const serviceDetailsPage = await modelServicePage.openServiceDetails(appModel);
+        test.beforeAll(`Open Recipes Catalog, search for ${appName}`, async ({ runner, page, navigationBar }) => {
+          aiLabPage = await reopenAILabDashboard(runner, page, navigationBar);
+          await aiLabPage.navigationBar.waitForLoad();
 
-        await playExpect
-          // eslint-disable-next-line sonarjs/no-nested-functions
-          .poll(async () => await serviceDetailsPage.getServiceState(), { timeout: 60_000 })
-          .toBe('RUNNING');
+          recipesCatalogPage = await aiLabPage.navigationBar.openRecipesCatalog();
+          await recipesCatalogPage.waitForLoad();
+        });
 
-        const port = await serviceDetailsPage.getInferenceServerPort();
-        const baseUrl = `http://localhost:${port}`;
+        test(`Install ${appName} example app`, async () => {
+          test.setTimeout(1_500_000);
+          const demoApp = await recipesCatalogPage.openRecipesCatalogApp(appName);
+          await demoApp.waitForLoad();
+          await demoApp.startNewDeployment();
+        });
 
-        let response: APIResponse;
-        let expectedResponse: string;
+        test(`Verify that model service for the ${appName} is working`, async ({ request }) => {
+          test.skip(appName !== 'Function calling' && appName !== 'Audio to Text');
+          test.fail(
+            appName === 'Audio to Text',
+            'Expected failure due to issue #3111: https://github.com/containers/podman-desktop-extension-ai-lab/issues/3111',
+          );
+          test.setTimeout(600_000);
 
-        switch (appModel) {
-          case 'ggerganov/whisper.cpp': {
-            expectedResponse =
-              'And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country';
-            const audioFileContent = fs.readFileSync(TEST_AUDIO_FILE_PATH);
+          const modelServicePage = await aiLabPage.navigationBar.openServices();
+          const serviceDetailsPage = await modelServicePage.openServiceDetails(appModel);
 
-            response = await request.post(`${baseUrl}/inference`, {
-              headers: {
-                Accept: 'application/json',
-              },
-              multipart: {
-                file: {
-                  name: 'test.wav',
-                  mimeType: 'audio/wav',
-                  buffer: audioFileContent,
+          await playExpect
+            // eslint-disable-next-line sonarjs/no-nested-functions
+            .poll(async () => await serviceDetailsPage.getServiceState(), { timeout: 60_000 })
+            .toBe('RUNNING');
+
+          const port = await serviceDetailsPage.getInferenceServerPort();
+          const baseUrl = `http://localhost:${port}`;
+
+          let response: APIResponse;
+          let expectedResponse: string;
+
+          switch (appModel) {
+            case 'ggerganov/whisper.cpp': {
+              expectedResponse =
+                'And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country';
+              const audioFileContent = fs.readFileSync(TEST_AUDIO_FILE_PATH);
+
+              response = await request.post(`${baseUrl}/inference`, {
+                headers: {
+                  Accept: 'application/json',
                 },
-              },
-              timeout: 600_000,
-            });
-            break;
+                multipart: {
+                  file: {
+                    name: 'test.wav',
+                    mimeType: 'audio/wav',
+                    buffer: audioFileContent,
+                  },
+                },
+                timeout: 600_000,
+              });
+              break;
+            }
+
+            case 'ibm-granite/granite-3.3-8b-instruct-GGUF': {
+              expectedResponse = 'Prague';
+              response = await request.post(`${baseUrl}/v1/chat/completions`, {
+                data: {
+                  messages: [
+                    { role: 'system', content: 'You are a helpful assistant.' },
+                    { role: 'user', content: 'What is the capital of Czech Republic?' },
+                  ],
+                },
+                timeout: 600_000,
+              });
+              break;
+            }
+
+            default:
+              throw new Error(`Unhandled model type: ${appModel}`);
           }
 
-          case 'ibm-granite/granite-3.3-8b-instruct-GGUF': {
-            expectedResponse = 'Prague';
-            response = await request.post(`${baseUrl}/v1/chat/completions`, {
-              data: {
-                messages: [
-                  { role: 'system', content: 'You are a helpful assistant.' },
-                  { role: 'user', content: 'What is the capital of Czech Republic?' },
-                ],
-              },
-              timeout: 600_000,
-            });
-            break;
-          }
+          playExpect(response.ok()).toBeTruthy();
+          const body = await response.body();
+          const text = body.toString();
+          playExpect(text).toContain(expectedResponse);
+        });
 
-          default:
-            throw new Error(`Unhandled model type: ${appModel}`);
-        }
+        test(`${appName}: Restart, Stop, Delete. Clean up model service`, async () => {
+          test.setTimeout(150_000);
 
-        playExpect(response.ok()).toBeTruthy();
-        const body = await response.body();
-        const text = body.toString();
-        playExpect(text).toContain(expectedResponse);
-      });
+          await restartApp(appName);
+          await stopAndDeleteApp(appName);
+          await cleanupServiceModels();
+        });
 
-      test(`${appName}: Restart, Stop, Delete. Clean up model service`, async () => {
-        test.setTimeout(150_000);
+        test.afterAll(`Ensure cleanup of "${appName}" app, related service, and images`, async ({ navigationBar }) => {
+          test.setTimeout(150_000);
 
-        await restartApp(appName);
-        await stopAndDeleteApp(appName);
-        await cleanupServiceModels();
-      });
-
-      test.afterAll(`Ensure cleanup of "${appName}" app, related service, and images`, async ({ navigationBar }) => {
-        test.setTimeout(150_000);
-
-        await stopAndDeleteApp(appName);
-        await cleanupServiceModels();
-        await deleteUnusedImages(navigationBar);
+          await stopAndDeleteApp(appName);
+          await cleanupServiceModels();
+          await deleteUnusedImages(navigationBar);
+        });
       });
     });
   });

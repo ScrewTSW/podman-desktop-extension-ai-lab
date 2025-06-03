@@ -40,7 +40,17 @@ import {
   reopenAILabDashboard,
   waitForExtensionToInitialize,
 } from './utils/aiLabHandler';
+import * as fs from 'node:fs';
+import type { AIJsonDto } from './model/ai-json-dto';
+import * as path from 'node:path';
 
+console.log(`PATH: ${process.cwd()}`);
+const aijson = fs.readFileSync(
+  path.join(process.cwd(), '../', '../', 'packages', 'backend', 'src', 'assets', 'ai.json'),
+  'utf8',
+);
+const AI_JSON: AIJsonDto = JSON.parse(aijson) as AIJsonDto;
+const AI_APP_NAMES: string[] = AI_JSON.recipes.map(recipe => recipe.name);
 const AI_LAB_EXTENSION_OCI_IMAGE =
   process.env.EXTENSION_OCI_IMAGE ?? 'ghcr.io/containers/podman-desktop-extension-ai-lab:nightly';
 const AI_LAB_EXTENSION_PREINSTALLED: boolean = process.env.EXTENSION_PREINSTALLED === 'true';
@@ -476,7 +486,8 @@ test.describe.serial(`AI Lab extension installation and verification`, () => {
     });
   });
 
-  ['Audio to Text', 'ChatBot', 'Summarizer', 'Code Generation', 'RAG Chatbot', 'Function calling'].forEach(appName => {
+  // ['Audio to Text', 'ChatBot', 'Summarizer', 'Code Generation', 'RAG Chatbot', 'Function calling'].forEach(appName => {
+  AI_APP_NAMES.forEach(appName => {
     test.describe.serial(`AI Recipe installation`, () => {
       test.skip(
         !process.env.EXT_TEST_RAG_CHATBOT && appName === 'RAG Chatbot',

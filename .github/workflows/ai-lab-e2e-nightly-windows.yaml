@@ -139,7 +139,10 @@ jobs:
     - name: Create instance
       run: |
         # Create instance
-        rm -rf .pulumi
+        whoami
+        pwd
+        ls -la
+        rm -rf /workspace/.pulumi
         podman run -d --name windows-create --rm \
           -v ${PWD}:/workspace:z \
           -e ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }} \

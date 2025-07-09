@@ -139,7 +139,6 @@ jobs:
     - name: Create instance
       run: |
         # Create instance
-        rm -rf .pulumi
         podman run -d --name windows-create --rm \
           -v ${PWD}:/workspace:z \
           -e ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }} \
@@ -149,8 +148,8 @@ jobs:
           ${{ env.MAPT_IMAGE }}:${{ env.MAPT_VERSION }} azure \
             windows create \
             --project-name 'windows-desktop' \
-            --backed-url 'file:///workspace' \
-            --conn-details-output '/workspace' \
+            --backed-url 'file:///home/runner/work/podman-desktop-extension-ai-lab/podman-desktop-extension-ai-lab' \
+            --conn-details-output '/home/runner/work/podman-desktop-extension-ai-lab/podman-desktop-extension-ai-lab' \
             --windows-version '${{ matrix.windows-version }}' \
             --windows-featurepack '${{ matrix.windows-featurepack }}' \
             --vmsize '${{ env.AZURE_VM_SIZE }}' \

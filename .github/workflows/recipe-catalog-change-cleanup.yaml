@@ -20,6 +20,7 @@ jobs:
           echo "Base repo: ${{ github.event.workflow_run.repository.full_name }}"
           echo "Changes detected: ${{ github.event.workflow_run.outputs.changes-detected }}"
           echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow context: ${{ toJson(github.event.workflow_run) }}"
   cleanup:
     runs-on: ubuntu-24.04
     if: ${{ github.event.workflow_run.conclusion == 'skipped' || github.event.workflow_run.conclusion == 'cancelled' }}

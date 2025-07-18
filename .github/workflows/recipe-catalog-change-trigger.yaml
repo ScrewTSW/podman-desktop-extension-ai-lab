@@ -53,7 +53,7 @@ jobs:
 
   trigger-template:
     needs: extract-context
-    uses: containers/podman-desktop-extension-ai-lab/.github/workflows/recipe-catalog-change-template.yaml@main
+    uses: ScrewTSW/podman-desktop-extension-ai-lab/.github/workflows/recipe-catalog-change-template.yaml@main
     if: ${{ needs.extract-context.outputs.changes-detected == 'true' }}
     strategy:
       fail-fast: false
